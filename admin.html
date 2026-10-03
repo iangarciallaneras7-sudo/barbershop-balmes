@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Citas · Balmes</title>
+<style>
+body{font:17px system-ui;margin:0;background:#0e1a16;color:#efe9dc}
+main{max-width:560px;margin:0 auto;padding:18px}
+input,button{font:inherit;padding:12px;width:100%;margin:6px 0;border:0;border-radius:6px}
+button{background:#d0743a;font-weight:700;cursor:pointer}
+.tabs{display:flex;gap:6px}.tabs button{background:#25382f;color:#efe9dc;padding:10px}.tabs .on{background:#d0743a;color:#0e1a16}
+h2{font-size:1rem;color:#d0743a;margin:22px 0 6px;text-transform:capitalize}
+.c{background:#16251f;padding:12px;margin:6px 0;border-radius:6px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center}
+.c b{font-size:1.4rem}.c a{color:#d0743a}.c small{color:#9fb0a7;display:block}.x{background:#6b2a2a;color:#fff;width:auto;padding:8px 12px;margin:0}
+</style>
+<main><h1>Citas</h1><p id="m"></p>
+<div id="lg"><input id="p" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="go">ENTRAR</button></div>
+<div id="ap" hidden><div class="tabs" id="tb"></div><div id="l"></div></div>
+</main>
+<script>
+var B=["Sufian","Primo de Sufian"],S=["Corte de pelo","Corte con barba"],pw="",f=-1,data=[];
+function $(i){return document.getElementById(i)}
+function api(o){return fetch("/api/admin",Object.assign({headers:{"x-admin":pw,"Content-Type":"application/json"}},o))}
+async function load(){var r=await api();if(r.status===401){$("m").textContent="Contraseña incorrecta";return false}data=await r.json();draw();return true}
+function draw(){
+  var tb=$("tb");tb.innerHTML="";
+  ["Todos"].concat(B).forEach(function(n,i){var b=document.createElement("button");b.textContent=n;b.className=i-1===f?"on":"";b.onclick=function(){f=i-1;draw()};tb.appendChild(b)});
+  var l=$("l"),last="",any=false;l.innerHTML="";
+  data.forEach(function(b){
+    if(f>=0&&b.barber!==f)return;any=true;
+    if(b.date!==last){last=b.date;var h=document.createElement("h2");h.textContent=new Date(b.date+"T12:00:00").toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});l.appendChild(h)}
+    var c=document.createElement("div");c.className="c";
+    var t=document.createElement("b");t.textContent=Math.floor(b.time/60)+":"+String(b.time%60).padStart(2,"0");
+    var m=document.createElement("div");m.textContent=b.name;
+    var s=document.createElement("small");s.textContent=B[b.barber]+" · "+S[b.service];s.appendChild(document.createElement("br"));
+    var a=document.createElement("a");a.href="tel:"+b.phone;a.textContent=b.phone;s.appendChild(a);m.appendChild(s);
+    var x=document.createElement("button");x.className="x";x.textContent="Cancelar";
+    x.onclick=function(){if(confirm("¿Cancelar la cita de "+b.name+"?"))api({method:"POST",body:JSON.stringify({id:b.id})}).then(load)};
+    c.appendChild(t);c.appendChild(m);c.appendChild(x);l.appendChild(c)});
+  if(!any)l.textContent="No hay citas en los próximos 14 días.";
+}
+$("go").onclick=async function(){pw=$("p").value;if(await load()){$("lg").hidden=true;$("ap").hidden=false;try{localStorage.setItem("pw",pw)}catch(e){}setInterval(load,30000)}};
+try{var k=localStorage.getItem("pw");if(k){$("p").value=k;$("go").click()}}catch(e){}
+</script></html>
